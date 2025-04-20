@@ -22,6 +22,16 @@ function displayBooks() {
         const bookDiv = document.createElement("div");
         bookDiv.className = "book-card";
 
+        // Add a delete button
+        const deleteBtn = document.createElement("button");
+        deleteBtn.className = "delete-btn";
+        deleteBtn.innerHTML = "&#x2715;"; // X symbol
+        deleteBtn.setAttribute("data-id", book._id);
+        deleteBtn.addEventListener("click", function() {
+            deleteBook(book._id);
+        });
+        bookDiv.appendChild(deleteBtn);
+
         // Title
         const h3Element = document.createElement('h3');
         h3Element.className = "book-title";
@@ -119,5 +129,28 @@ async function addNewBook(event) {
     } catch (error) {
         console.error("Error adding book:", error);
         alert("Error adding book: " + error.message);
+    }
+}
+
+async function deleteBook(id) {
+    if (confirm("Are you sure you want to delete this book?")) {
+        try {
+            const response = await fetch(`https://book-collection-api-kj0g.onrender.com/api/v1/books/${id}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                console.log("Book deleted successfully");
+                // Refresh book list after deletion
+                getAllBooks();
+            } else {
+                const result = await response.json();
+                console.error("Error deleting book:", result);
+                alert("Error deleting book: " + (result.message || "Unknown error"));
+            }
+        } catch (error) {
+            console.error("Error deleting book:", error);
+            alert("Error deleting book: " + error.message);
+        }
     }
 }
