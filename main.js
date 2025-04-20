@@ -1,5 +1,6 @@
 let books = [];
 let count = 0;
+let currentBookId = null;
 
 async function getAllBooks() {
     console.log("getting all books");
@@ -31,6 +32,17 @@ function displayBooks() {
             deleteBook(book._id);
         });
         bookDiv.appendChild(deleteBtn);
+
+       // Add an edit button
+        const editBtn = document.createElement("button");
+        editBtn.className = "edit-btn";
+        editBtn.innerHTML = "&#9998;"; // Pencil symbol
+        editBtn.setAttribute("data-id", book._id);
+        editBtn.addEventListener("click", function() {
+            showEditForm(book);
+        });
+        bookDiv.appendChild(editBtn);
+
 
         // Title
         const h3Element = document.createElement('h3');
@@ -73,6 +85,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const addBookForm = document.getElementById('add-book-form');
     const cancelBtn = document.getElementById('cancel-btn');
 
+    const editFormContainer = document.getElementById('edit-form-container');
+    const editBookForm = document.getElementById('edit-book-form');
+    const cancelEditBtn = document.getElementById('cancel-edit-btn');
+
     getAllBooks();
 
     showFormBtn.addEventListener('click', () => {
@@ -87,6 +103,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     addBookForm.addEventListener('submit', addNewBook);
+
+    // Edit book form event listeners
+    cancelEditBtn.addEventListener('click', () => {
+        editFormContainer.style.display = 'none';
+        editBookForm.reset();
+    });
+
+    editBookForm.addEventListener('submit', updateBook);
 });
 
 async function addNewBook(event) {
@@ -132,6 +156,54 @@ async function addNewBook(event) {
     }
 }
 
+async function updateBook(event) {
+    event.preventDefault();
+
+    if (!currentBookId) {
+        alert("No book selected for editing");
+        return;
+    }
+
+    const formData = {
+        title: document.getElementById('edit-title').value,
+        author: document.getElementById('edit-author').value,
+        year: document.getElementById('edit-year').value ? parseInt(document.getElementById('edit-year').value) : null,
+        genre: document.getElementById('edit-genre').value,
+        rating: document.getElementById('edit-rating').value ? parseInt(document.getElementById('edit-rating').value) : null,
+        isRead: document.getElementById('edit-isRead').checked
+    };
+
+    try {
+        const response = await fetch(`https://book-collection-api-kj0g.onrender.com/api/v1/books/${currentBookId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            console.log("Book updated successfully:", result);
+
+            // Hide form and reset
+            document.getElementById('edit-form-container').style.display = 'none';
+            document.getElementById('edit-book-form').reset();
+            currentBookId = null;
+
+            // Refresh book list
+            getAllBooks();
+        } else {
+            console.error("Error updating book:", result);
+            alert("Error updating book: " + (result.message || "Unknown error"));
+        }
+    } catch (error) {
+        console.error("Error updating book:", error);
+        alert("Error updating book: " + error.message);
+    }
+}
+
 async function deleteBook(id) {
     if (confirm("Are you sure you want to delete this book?")) {
         try {
@@ -153,4 +225,22 @@ async function deleteBook(id) {
             alert("Error deleting book: " + error.message);
         }
     }
+}
+
+
+function showEditForm(book) {
+    // Set the current book ID
+    currentBookId = book._id;
+
+    // Show the edit form
+    const editFormContainer = document.getElementById('edit-form-container');
+    editFormContainer.style.display = 'block';
+
+    // Set current values in the form
+    document.getElementById('edit-title').value = book.title;
+    document.getElementById('edit-author').value = book.author || '';
+    document.getElementById('edit-year').value = book.year || '';
+    document.getElementById('edit-genre').value = book.genre || '';
+    document.getElementById('edit-rating').value = book.rating || '';
+    document.getElementById('edit-isRead').checked = book.isRead || false;
 }
